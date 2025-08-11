@@ -1,0 +1,16 @@
+
+syntax = "proto3";
+
+package library.v1;
+option go_package = "library/v1";
+
+import "proto/book_model.proto";
+import "google/protobuf/empty.proto";
+
+service LibraryService {
+    rpc CreateBook(CreateBookRequest) returns (Book);
+    rpc GetBook(GetBookRequest) returns (Book);
+    rpc UpdateBook(UpdateBookRequest) returns (Book);
+    rpc DeleteBook(DeleteBookRequest) returns (google.protobuf.Empty);
+    rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
+}
