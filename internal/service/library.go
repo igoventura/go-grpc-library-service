@@ -94,3 +94,18 @@ func (s *LibraryServiceServerImpl) DeleteBook(ctx context.Context, req *v1.Delet
 
 	return &emptypb.Empty{}, nil
 }
+
+func (s *LibraryServiceServerImpl) ListBooks(ctx context.Context, req *v1.ListBooksRequest) (*v1.ListBooksResponse, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	response := &v1.ListBooksResponse{}
+	for _, book := range s.books {
+		if book.Isbn == "" || book.Title == "" {
+			continue
+		}
+		response.Books = append(response.Books, book)
+	}
+
+	return response, nil
+}
