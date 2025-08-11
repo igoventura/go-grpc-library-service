@@ -55,3 +55,23 @@ func (s *LibraryServiceServerImpl) GetBook(ctx context.Context, req *v1.GetBookR
 
 	return book, nil
 }
+
+func (s *LibraryServiceServerImpl) UpdateBook(ctx context.Context, req *v1.UpdateBookRequest) (*v1.Book, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	book, ok := s.books[req.Id]
+
+	if !ok {
+		err := status.Errorf(codes.NotFound, "book not found: %s", req.Id)
+		return nil, err
+	}
+
+	book.Title = req.Title
+	book.Author = req.Author
+	book.Edition = req.Edition
+	book.Isbn = req.Isbn
+
+	s.books[req.Id] = book
+	return book, nil
+}
