@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"sync"
 
+	"github.com/igoventura/go-grpc-library-service/internal/repository"
 	v1 "github.com/igoventura/go-grpc-library-service/pkg/pb/library/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,7 +20,7 @@ type LibraryServiceServerImpl struct {
 	books map[string]*v1.Book
 }
 
-func New() *LibraryServiceServerImpl {
+func New(bookRepo repository.BookRepository) *LibraryServiceServerImpl {
 	return &LibraryServiceServerImpl{
 		books: make(map[string]*v1.Book),
 	}
