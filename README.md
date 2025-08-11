@@ -64,6 +64,8 @@ protoc --go_out=. --go-grpc_out=. proto/*.proto
 
 ### Install Dependencies
 ```bash
+go get google.golang.org/protobuf
+go get google.golang.org/grpc
 go mod tidy
 ```
 
