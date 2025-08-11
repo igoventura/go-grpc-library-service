@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/igoventura/go-grpc-library-service/internal/domain"
 )
@@ -13,3 +14,5 @@ type BookRepository interface {
 	DeleteBook(ctx context.Context, id string) error
 	ListBooks(ctx context.Context) ([]*domain.Book, error)
 }
+
+var ErrNotFound = errors.New("not found")

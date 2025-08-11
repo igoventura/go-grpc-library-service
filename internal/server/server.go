@@ -8,5 +8,6 @@ import (
 
 // NewLibraryServer creates a new instance of the library service server
 func NewLibraryServer() v1.LibraryServiceServer {
+	// TODO: implement db to initialize repository
 	return service.New(cockroach.NewBookRepository(nil))
 }
