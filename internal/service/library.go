@@ -9,6 +9,7 @@ import (
 	v1 "github.com/igoventura/go-grpc-library-service/pkg/pb/library/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 type LibraryServiceServerImpl struct {
@@ -46,6 +47,9 @@ func (s *LibraryServiceServerImpl) CreateBook(ctx context.Context, req *v1.Creat
 }
 
 func (s *LibraryServiceServerImpl) GetBook(ctx context.Context, req *v1.GetBookRequest) (*v1.Book, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	book, ok := s.books[req.Id]
 
 	if !ok {
@@ -74,4 +78,19 @@ func (s *LibraryServiceServerImpl) UpdateBook(ctx context.Context, req *v1.Updat
 
 	s.books[req.Id] = book
 	return book, nil
+}
+
+func (s *LibraryServiceServerImpl) DeleteBook(ctx context.Context, req *v1.DeleteBookRequest) (*emptypb.Empty, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, ok := s.books[req.Id]
+	if !ok {
+		err := status.Errorf(codes.NotFound, "book not found: %s", req.Id)
+		return nil, err
+	}
+
+	delete(s.books, req.Id)
+
+	return &emptypb.Empty{}, nil
 }
