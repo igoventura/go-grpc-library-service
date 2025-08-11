@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	server "github.com/igoventura/go-grpc-library-service/internal/server"
 	pb "github.com/igoventura/go-grpc-library-service/pkg/pb/library/v1"
 )
 
@@ -23,7 +24,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	// Create and register the library server
-	libraryServer := NewLibraryServer()
+	libraryServer := server.NewLibraryServer()
 	pb.RegisterLibraryServiceServer(grpcServer, libraryServer)
 
 	// Enable gRPC reflection for debugging tools like grpcurl

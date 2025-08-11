@@ -24,7 +24,7 @@ install-deps:
 # Run Server
 run:
 	@echo "Starting server..."
-	go run cmd/server/main.go cmd/server/server.go
+	go run cmd/server/main.go
 
 # Run Tests
 test:
@@ -40,7 +40,7 @@ test-coverage:
 build:
 	@echo "Building application..."
 	mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) cmd/server/main.go cmd/server/server.go
+	go build -o $(BUILD_DIR)/$(BINARY_NAME) cmd/server/main.go
 
 # Format code
 format:

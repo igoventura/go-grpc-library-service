@@ -59,7 +59,7 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ```bash
 make generate
 # or manually:
-protoc --go_out=. --go-grpc_out=. proto/*.proto
+protoc --go_out=./pkg/pb --go-grpc_out=./pkg/pb proto/*.proto
 ```
 
 ### Install Dependencies
