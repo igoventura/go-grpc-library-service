@@ -4,17 +4,69 @@ import (
 	"context"
 	"testing"
 
+	"github.com/igoventura/go-grpc-library-service/internal/domain"
+	"github.com/igoventura/go-grpc-library-service/internal/repository"
 	v1 "github.com/igoventura/go-grpc-library-service/pkg/pb/library/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+// MockBookRepository implements repository.BookRepository for testing
+type MockBookRepository struct {
+	books   map[string]*domain.Book
+	counter int
+}
+
+func NewMockBookRepository() *MockBookRepository {
+	return &MockBookRepository{
+		books: make(map[string]*domain.Book),
+	}
+}
+
+func (m *MockBookRepository) CreateBook(ctx context.Context, book *domain.Book) (*domain.Book, error) {
+	m.counter++
+	book.ID = "test-id-" + string(rune(m.counter))
+	m.books[book.ID] = book
+	return book, nil
+}
+
+func (m *MockBookRepository) GetBookByID(ctx context.Context, id string) (*domain.Book, error) {
+	book, exists := m.books[id]
+	if !exists {
+		return nil, repository.ErrNotFound
+	}
+	return book, nil
+}
+
+func (m *MockBookRepository) UpdateBook(ctx context.Context, book *domain.Book) (*domain.Book, error) {
+	if _, exists := m.books[book.ID]; !exists {
+		return nil, repository.ErrNotFound
+	}
+	m.books[book.ID] = book
+	return book, nil
+}
+
+func (m *MockBookRepository) DeleteBook(ctx context.Context, id string) error {
+	if _, exists := m.books[id]; !exists {
+		return repository.ErrNotFound
+	}
+	delete(m.books, id)
+	return nil
+}
+
+func (m *MockBookRepository) ListBooks(ctx context.Context) ([]*domain.Book, error) {
+	var books []*domain.Book
+	for _, book := range m.books {
+		books = append(books, book)
+	}
+	return books, nil
+}
+
 func TestLibraryServiceServerImpl_CreateBook(t *testing.T) {
-	// Create a new service instance for testing
-	service := New()
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
 	ctx := context.Background()
 
-	// Test creating a book
 	req := &v1.CreateBookRequest{
 		Title:   "The Go Programming Language",
 		Author:  "Alan Donovan",
@@ -27,7 +79,6 @@ func TestLibraryServiceServerImpl_CreateBook(t *testing.T) {
 		t.Fatalf("CreateBook failed: %v", err)
 	}
 
-	// Verify the book was created correctly
 	if book.Title != req.Title {
 		t.Errorf("Expected title %q, got %q", req.Title, book.Title)
 	}
@@ -35,7 +86,7 @@ func TestLibraryServiceServerImpl_CreateBook(t *testing.T) {
 		t.Errorf("Expected author %q, got %q", req.Author, book.Author)
 	}
 	if book.Edition != req.Edition {
-		t.Errorf("Expected edition %q, got %q", req.Edition, book.Edition)
+		t.Errorf("Expected edition %v, got %v", req.Edition, book.Edition)
 	}
 	if book.Isbn != req.Isbn {
 		t.Errorf("Expected ISBN %q, got %q", req.Isbn, book.Isbn)
@@ -46,7 +97,8 @@ func TestLibraryServiceServerImpl_CreateBook(t *testing.T) {
 }
 
 func TestLibraryServiceServerImpl_GetBook(t *testing.T) {
-	service := New()
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
 	ctx := context.Background()
 
 	// First create a book
@@ -77,10 +129,10 @@ func TestLibraryServiceServerImpl_GetBook(t *testing.T) {
 }
 
 func TestLibraryServiceServerImpl_GetBook_NotFound(t *testing.T) {
-	service := New()
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
 	ctx := context.Background()
 
-	// Test getting a non-existent book
 	getReq := &v1.GetBookRequest{Id: "non-existent-id"}
 	_, err := service.GetBook(ctx, getReq)
 
@@ -88,7 +140,6 @@ func TestLibraryServiceServerImpl_GetBook_NotFound(t *testing.T) {
 		t.Fatal("Expected error for non-existent book, got nil")
 	}
 
-	// Check if it's the correct gRPC error
 	st, ok := status.FromError(err)
 	if !ok {
 		t.Fatal("Expected gRPC status error")
@@ -99,7 +150,8 @@ func TestLibraryServiceServerImpl_GetBook_NotFound(t *testing.T) {
 }
 
 func TestLibraryServiceServerImpl_UpdateBook(t *testing.T) {
-	service := New()
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
 	ctx := context.Background()
 
 	// First create a book
@@ -136,10 +188,10 @@ func TestLibraryServiceServerImpl_UpdateBook(t *testing.T) {
 }
 
 func TestLibraryServiceServerImpl_UpdateBook_NotFound(t *testing.T) {
-	service := New()
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
 	ctx := context.Background()
 
-	// Test updating a non-existent book
 	updateReq := &v1.UpdateBookRequest{
 		Id:      "non-existent-id",
 		Title:   "Some Title",
@@ -163,7 +215,8 @@ func TestLibraryServiceServerImpl_UpdateBook_NotFound(t *testing.T) {
 }
 
 func TestLibraryServiceServerImpl_DeleteBook(t *testing.T) {
-	service := New()
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
 	ctx := context.Background()
 
 	// First create a book
@@ -193,8 +246,30 @@ func TestLibraryServiceServerImpl_DeleteBook(t *testing.T) {
 	}
 }
 
+func TestLibraryServiceServerImpl_DeleteBook_NotFound(t *testing.T) {
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
+	ctx := context.Background()
+
+	deleteReq := &v1.DeleteBookRequest{Id: "non-existent-id"}
+	_, err := service.DeleteBook(ctx, deleteReq)
+
+	if err == nil {
+		t.Fatal("Expected error for non-existent book, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("Expected gRPC status error")
+	}
+	if st.Code() != codes.NotFound {
+		t.Errorf("Expected NotFound error code, got %v", st.Code())
+	}
+}
+
 func TestLibraryServiceServerImpl_ListBooks(t *testing.T) {
-	service := New()
+	mockRepo := NewMockBookRepository()
+	service := New(mockRepo)
 	ctx := context.Background()
 
 	// Create some test books
