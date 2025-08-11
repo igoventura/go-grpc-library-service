@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	v1 "github.com/igoventura/go-grpc-library-service/pkg/pb/library/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type LibraryServiceServerImpl struct {
@@ -22,7 +24,6 @@ func New() *LibraryServiceServerImpl {
 	}
 }
 
-// CreateBook handles the RPC call to create a new book.
 func (s *LibraryServiceServerImpl) CreateBook(ctx context.Context, req *v1.CreateBookRequest) (*v1.Book, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -40,6 +41,17 @@ func (s *LibraryServiceServerImpl) CreateBook(ctx context.Context, req *v1.Creat
 	}
 
 	s.books[id] = book
+
+	return book, nil
+}
+
+func (s *LibraryServiceServerImpl) GetBook(ctx context.Context, req *v1.GetBookRequest) (*v1.Book, error) {
+	book, ok := s.books[req.Id]
+
+	if !ok {
+		err := status.Errorf(codes.NotFound, "book not found: %s", req.Id)
+		return nil, err
+	}
 
 	return book, nil
 }
