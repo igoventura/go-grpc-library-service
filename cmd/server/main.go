@@ -13,6 +13,8 @@ import (
 	"github.com/igoventura/go-grpc-library-service/internal/repository/cockroach"
 	server "github.com/igoventura/go-grpc-library-service/internal/server"
 	pb "github.com/igoventura/go-grpc-library-service/pkg/pb/library/v1"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {

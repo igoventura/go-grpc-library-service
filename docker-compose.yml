@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  cockroach:
+    image: cockroachdb/cockroach:v23.1.13
+    ports:
+      - "26257:26257"  # SQL interface
+      - "8080:8080"    # Admin UI
+    command: start-single-node --insecure
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+    environment:
+      - COCKROACH_DATABASE=library
+      - COCKROACH_USER=root
+      - COCKROACH_PASSWORD=password
+    networks:
+      - library-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # You can add more services here if needed (like your gRPC service)
+
+networks:
+  library-network:
+    driver: bridge
+
+volumes:
+  cockroach-data:
+    driver: local

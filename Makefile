@@ -65,6 +65,7 @@ install-tools:
 	@echo "Installing protobuf tools..."
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install -tags 'cockroachdb' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Development setup (install tools and dependencies)
 setup: install-tools install-deps
@@ -77,7 +78,7 @@ dev: generate format test build
 # Database Migrations
 migrate-up:
 	@echo "Running migrations..."
-	migrate -path ./migrations -database ${DATABASE_URL} up
+	migrate -path ./migrations -database ${COCKROACH_DATABASE_URL} up
 
 # Help target
 help:

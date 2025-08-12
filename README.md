@@ -11,10 +11,13 @@ A production-ready gRPC service built with Go for managing a library of books. T
 - ✅ Comprehensive test suite with mock repository
 - 🛠️ Production-ready server with reflection enabled
 - 🔧 Environment-based configuration
+- 🐳 Docker Compose setup for local development
+- 🔄 Database migrations with versioning
+
 ## 🏗️ Project Structure
 
-```
-library-service/
+```bash
+go-grpc-library-service/
 ├── cmd/
 │   └── server/
 │       └── main.go              # Application entry point
@@ -31,17 +34,20 @@ library-service/
 │       ├── library.go          # Business logic
 │       └── library_test.go     # Service tests
 ├── migrations/
-│   └── 0001_create_books_table.sql  # Database migrations
+│   ├── 20250812144531_create_books_table.up.sql   # Database creation migration
+│   └── 20250812144531_create_books_table.down.sql # Database rollback migration
 ├── proto/
 │   ├── book_model.proto        # Book data model
 │   └── library_service.proto   # Service definitions
 ├── pkg/
-│   └── pb/                     # Generated protobuf code
-├── .env.example                # Environment variables template
-├── .gitignore
+│   └── pb/
+│       └── library/
+│           └── v1/             # Generated protobuf code
+├── docker-compose.yml          # Docker configuration for local development
+├── generate.sh                 # Protocol buffer generation script
 ├── go.mod
 ├── go.sum
-├── Makefile
+├── Makefile                    # Build and development commands
 ├── README.md
 └── TUTORIAL.md                 # Complete learning guide
 ```
@@ -71,7 +77,9 @@ library-service/
 
 1. **Go 1.21+**
 2. **Protocol Buffers Compiler**
-3. **CockroachDB** (local or cloud)
+3. **Docker & Docker Compose** (for local development)
+4. **CockroachDB** (containerized via Docker or cloud)
+
 ```bash
 # Install protoc compiler
 brew install protobuf  # macOS
@@ -80,62 +88,91 @@ brew install protobuf  # macOS
 # Install Go plugins
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go install -tags 'cockroachdb' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 ```
 
 ### 📋 Setup
 
 1. **Clone the repository**
+
 ```bash
 git clone <repository-url>
 cd go-grpc-library-service
 ```
 
 2. **Install dependencies**
+
 ```bash
 make install-deps
 # or manually:
 go mod tidy
 ```
 
-3. **Setup environment**
+3. **Start CockroachDB with Docker Compose**
+
 ```bash
-cp .env.example .env
-# Edit .env with your database URL
+docker-compose up -d
+# This will start a local CockroachDB instance on port 26257
+# Admin UI will be available at http://localhost:8080
 ```
 
-4. **Setup database**
+4. **Setup environment**
+
 ```bash
-# Run migrations (you'll need to implement a migration runner or run manually)
-# For now, execute the SQL in migrations/0001_create_books_table.sql
+# Create a .env file with your database connection string:
+echo "DATABASE_URL=postgresql://root:password@localhost:26257/library?sslmode=disable" > .env
 ```
 
-5. **Generate Protocol Buffer code**
+5. **Run database migrations**
+
+```bash
+make migrate-up
+# This will run the migrations from the migrations directory
+```
+
+6. **Generate Protocol Buffer code**
+
 ```bash
 make generate
+# or use the generate.sh script
 ```
 
 ## 🔧 Available Commands
 
 ### Development
+
 ```bash
+make setup            # Install tools and dependencies
 make run              # Start the server
 make test             # Run all tests
 make test-coverage    # Run tests with coverage
 make format           # Format code
 make generate         # Generate protobuf code
+make dev              # Full development workflow (generate + format + test + build)
 ```
 
 ### Production
+
 ```bash
 make build            # Build binary
 ./bin/server          # Run built binary
 ```
 
-### Database Operations
+### Docker Commands
+
 ```bash
+docker-compose up -d           # Start CockroachDB in the background
+docker-compose down            # Stop all containers
+docker-compose logs -f         # Follow container logs
+docker-compose exec cockroach bash  # Access the CockroachDB shell
+```
+
+### Database Operations
+
+```bash
+make migrate-up      # Run database migrations
 # Example database URL for CockroachDB:
-# postgresql://username:password@localhost:26257/library?sslmode=require
+# DATABASE_URL=postgresql://root:password@localhost:26257/library?sslmode=disable
 ```
 
 ## 🗄️ Database Schema
@@ -199,11 +236,21 @@ grpcurl -plaintext -d '{}' localhost:50051 library.v1.LibraryService/ListBooks
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | CockroachDB connection string | `postgresql://user:pass@localhost:26257/library?sslmode=require` |
+| `DATABASE_URL` | CockroachDB connection string | `postgresql://root:password@localhost:26257/library?sslmode=disable` |
+| `PORT` | Server port (optional) | `50051` |
+
+For Docker Compose environment:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COCKROACH_DATABASE` | Database name | `library` |
+| `COCKROACH_USER` | Database user | `root` |
+| `COCKROACH_PASSWORD` | Database password | `password` |
 
 ## 🏆 Production Considerations
 
 ### What's Included
+
 - ✅ Structured logging ready
 - ✅ gRPC reflection for debugging
 - ✅ Clean error handling
@@ -211,14 +258,15 @@ grpcurl -plaintext -d '{}' localhost:50051 library.v1.LibraryService/ListBooks
 - ✅ Database connection management
 
 ### What You Might Add
-- 🔄 Database connection pooling
+
+- 🔄 Advanced database connection pooling with pgxpool
 - 📊 Metrics and monitoring (Prometheus)
 - 🔍 Distributed tracing (Jaeger)
 - 🔐 Authentication and authorization
 - 🛡️ Rate limiting and circuit breakers
 - 📝 Structured logging (zerolog/logrus)
-- 🐳 Docker containerization
 - ☸️ Kubernetes deployment manifests
+- 🚀 CI/CD pipeline for automated testing and deployment
 
 ## 📚 Learning Resources
 
@@ -242,8 +290,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built with [gRPC](https://grpc.io/) and [Protocol Buffers](https://developers.google.com/protocol-buffers)
 - Database powered by [CockroachDB](https://www.cockroachlabs.com/)
+- Docker containerization for easy local development
 - Inspired by Go community best practices
 
 ---
 
-*Happy coding! 🚀*
+## Happy Coding! 🚀
