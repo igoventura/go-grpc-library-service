@@ -1,0 +1,148 @@
+# Go gRPC Library Service - Cursor AI Rules
+
+## Project Overview
+You are working on a production-ready gRPC service built with Go for managing a library of books. This service uses CockroachDB as the database, Protocol Buffers for API definitions, and follows clean architecture principles.
+
+## Technology Stack
+- **Language**: Go 1.21+
+- **Framework**: gRPC with Protocol Buffers
+- **Database**: CockroachDB (PostgreSQL-compatible)
+- **Testing**: Go standard testing with mocks
+- **Containerization**: Docker Compose for local development
+- **Build Tool**: Make with comprehensive targets
+
+## Project Structure Guidelines
+
+### Core Directories
+- `cmd/server/` - Application entry point and server setup
+- `internal/domain/` - Business entities and domain models
+- `internal/repository/` - Data access layer with interface and implementations
+- `internal/service/` - Business logic and gRPC service implementations
+- `internal/server/` - gRPC server configuration and setup
+- `proto/` - Protocol Buffer definitions (.proto files)
+- `pkg/pb/` - Generated Protocol Buffer Go code (do not edit manually)
+- `migrations/` - Database migration files (up/down versioned)
+
+### File Naming Conventions
+- Use snake_case for file names (e.g., `library_service.proto`)
+- Use descriptive names that match their purpose
+- Test files end with `_test.go`
+- Proto files use `.proto` extension
+- Migration files follow format: `YYYYMMDDHHMMSS_description.up.sql` and `YYYYMMDDHHMMSS_description.down.sql`
+
+## Coding Standards
+
+### Go Code Style
+- Follow standard Go formatting (use `gofmt` and `goimports`)
+- Use meaningful variable and function names
+- Write comprehensive tests for all business logic
+- Use interfaces for dependencies (especially repositories)
+- Handle errors explicitly - never ignore errors
+- Use context.Context for cancellation and timeouts
+- Follow clean architecture principles with clear layer separation
+
+### gRPC Best Practices
+- Define clear, versioned APIs in proto files (e.g., `library.v1`)
+- Use proper gRPC status codes for errors
+- Implement server-side validation for all inputs
+- Use gRPC reflection for development (already enabled)
+- Follow protobuf style guide for message and service definitions
+
+### Database Guidelines
+- Use UUID primary keys (CockroachDB optimized)
+- Include `created_at` and `updated_at` timestamps
+- Use proper SQL parameter binding to prevent injection
+- Write both up and down migrations for schema changes
+- Use CockroachDB-specific features when beneficial (e.g., `gen_random_uuid()`)
+
+### Error Handling
+- Use gRPC status codes appropriately:
+  - `InvalidArgument` for validation errors
+  - `NotFound` for missing resources
+  - `Internal` for server errors
+  - `AlreadyExists` for duplicate resources
+- Create descriptive error messages
+- Log errors with appropriate context
+
+## Development Workflow
+
+### Before Making Changes
+1. Run `make test` to ensure all tests pass
+2. Run `make format` to format code
+3. If modifying proto files, run `make generate` to regenerate Go code
+
+### When Adding New Features
+1. Start with proto definitions if API changes are needed
+2. Update domain models if new entities are introduced
+3. Implement repository interface and concrete implementation
+4. Add business logic to service layer
+5. Write comprehensive tests for all layers
+6. Update migrations if database schema changes are needed
+
+### Testing Requirements
+- Write unit tests for all service logic
+- Use mocks for external dependencies (database, etc.)
+- Test both success and error scenarios
+- Maintain test coverage above 80%
+- Use table-driven tests for multiple scenarios
+
+## Database Operations
+
+### Migration Guidelines
+- Always create both up and down migrations
+- Use descriptive migration names
+- Test migrations on a copy of production data
+- Keep migrations small and focused
+- Use `make migrate-up` to run migrations
+
+### CockroachDB Specifics
+- Use `UUID` type for primary keys with `gen_random_uuid()` default
+- Use `STRING` instead of `VARCHAR` for text fields
+- Use `TIMESTAMPTZ` for timestamps with `now()` default
+- Leverage CockroachDB's distributed SQL capabilities
+
+## Environment Configuration
+- Use `.env` files for local development
+- Never commit sensitive credentials
+- Use `DATABASE_URL` for main database connection
+- Use `COCKROACH_DATABASE_URL` for migrations
+- Default server port is 50051
+
+## Docker and Local Development
+- Use `docker-compose up -d` to start local CockroachDB
+- CockroachDB admin UI available at http://localhost:8080
+- Database runs on port 26257
+- Use `make setup` for initial project setup
+
+## Code Generation
+- Proto files are in `proto/` directory
+- Generated Go code goes to `pkg/pb/library/v1/`
+- Never edit generated files manually
+- Use `make generate` or `./generate.sh` to regenerate
+- Commit generated files to version control
+
+## Common Commands
+- `make run` - Start the development server
+- `make test` - Run all tests
+- `make test-coverage` - Run tests with coverage report
+- `make build` - Build production binary
+- `make dev` - Full development workflow (generate + format + test + build)
+- `make migrate-up` - Run database migrations
+
+## AI Assistant Guidelines
+When helping with this project:
+1. Always follow Go best practices and idioms
+2. Maintain clean architecture separation
+3. Write tests for any new functionality
+4. Use the existing project patterns and conventions
+5. Consider CockroachDB specifics when working with database code
+6. Generate proper gRPC status codes for errors
+7. Keep proto definitions clean and well-documented
+8. Use the established Makefile targets for common operations
+
+## Security Considerations
+- Always validate inputs at the service layer
+- Use parameterized queries for database operations
+- Never log sensitive information
+- Use appropriate gRPC interceptors for cross-cutting concerns
+- Implement proper error handling without exposing internal details 

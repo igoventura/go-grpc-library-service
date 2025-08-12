@@ -1,0 +1,186 @@
+name: Go gRPC Library Service Assistant
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Claude 3.5 Sonnet
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+    apiKey: ${{ secrets.ANTHROPIC_API_KEY }}
+    roles:
+      - chat
+      - edit
+    defaultCompletionOptions:
+      temperature: 0.1
+      maxTokens: 4000
+
+  - name: GPT-4 Turbo
+    provider: openai
+    model: gpt-4-turbo-preview
+    apiKey: ${{ secrets.OPENAI_API_KEY }}
+    roles:
+      - chat
+      - edit
+    defaultCompletionOptions:
+      temperature: 0.2
+      maxTokens: 4000
+
+  - name: Codestral
+    provider: mistral
+    model: codestral-latest
+    apiKey: ${{ secrets.MISTRAL_API_KEY }}
+    roles:
+      - autocomplete
+    autocompleteOptions:
+      debounceDelay: 200
+      maxPromptTokens: 1024
+      onlyMyCode: true
+    defaultCompletionOptions:
+      temperature: 0.1
+      stop:
+        - "\n\n"
+        - "func "
+        - "type "
+        - "var "
+
+context:
+  - provider: file
+    params:
+      include:
+        - "**/*.go"
+        - "**/*.proto"
+        - "**/*.sql"
+        - "**/*.md"
+        - "**/Makefile"
+        - "**/docker-compose.yml"
+        - "**/.env.example"
+        - "**/go.mod"
+        - "**/go.sum"
+      exclude:
+        - "**/node_modules/**"
+        - "**/vendor/**"
+        - "**/.git/**"
+        - "**/bin/**"
+        - "**/tmp/**"
+        - "**/*.pb.go"
+
+  - provider: folder
+    params:
+      folders:
+        - "internal/"
+        - "cmd/"
+        - "proto/"
+        - "migrations/"
+
+  - provider: codebase
+    params:
+      nRetrieve: 25
+      nFinal: 5
+      useReranking: true
+
+  - provider: diff
+
+  - provider: code
+
+rules:
+  - Always follow Go best practices and idioms
+  - Maintain clean architecture with clear layer separation between domain, repository, service, and server layers
+  - Use proper gRPC status codes for error handling (InvalidArgument, NotFound, Internal, AlreadyExists)
+  - Write comprehensive tests with mocks for all business logic
+  - Consider CockroachDB-specific optimizations when working with database code
+  - Generate proper error messages and handle errors explicitly - never ignore errors
+  - Keep proto definitions clean and well-documented with versioned APIs (e.g., library.v1)
+  - Use the established Makefile targets for common operations
+  - Follow the existing project patterns and conventions
+  - Use context.Context for cancellation and timeouts
+  - Implement server-side validation for all gRPC inputs
+  - Use UUID primary keys with CockroachDB's gen_random_uuid() function
+  - Include created_at and updated_at timestamps in database schemas
+  - Use parameterized queries to prevent SQL injection
+  - Never edit generated Protocol Buffer files manually
+
+prompts:
+  - name: generate-proto
+    description: Generate Go code from Protocol Buffer definitions
+    prompt: |
+      Please regenerate the Go code from the Protocol Buffer definitions in the proto/ directory. 
+      Use the `make generate` command or `./generate.sh` script. 
+      After generation, verify that the generated files in pkg/pb/library/v1/ are correct and follow the established patterns.
+      Ensure the proto definitions follow the style guide with proper versioning (e.g., library.v1).
+
+  - name: run-tests
+    description: Run the complete test suite with coverage
+    prompt: |
+      Run the test suite for this Go gRPC service. Use `make test-coverage` to get coverage information. 
+      If any tests fail, help me understand and fix the issues. 
+      Pay attention to repository mocks and service layer tests.
+      Ensure test coverage remains above 80% and use table-driven tests for multiple scenarios.
+
+  - name: add-migration
+    description: Create a new database migration
+    prompt: |
+      Help me create a new database migration for CockroachDB. I need both up and down migration files 
+      following the naming convention YYYYMMDDHHMMSS_description.up.sql and YYYYMMDDHHMMSS_description.down.sql. 
+      Use CockroachDB-specific SQL syntax including:
+      - UUID primary keys with gen_random_uuid() default
+      - STRING types instead of VARCHAR
+      - TIMESTAMPTZ timestamps with now() default
+      - Proper indexing strategies for distributed SQL
+
+  - name: add-grpc-method
+    description: Add a new gRPC method to the service
+    prompt: |
+      Help me add a new gRPC method to the library service. This involves:
+      1. Updating the proto definition in proto/library_service.proto with proper versioning
+      2. Regenerating the Go code using make generate
+      3. Implementing the method in internal/service/library.go with proper error handling
+      4. Adding comprehensive tests including success and error scenarios
+      5. Updating the repository interface if needed
+      Follow clean architecture principles and use appropriate gRPC status codes.
+
+  - name: review-architecture
+    description: Review the clean architecture implementation
+    prompt: |
+      Review the current clean architecture implementation of this Go gRPC service. 
+      Check the separation of concerns between domain, repository, service, and server layers. 
+      Suggest improvements to maintain loose coupling and high cohesion. 
+      Pay attention to dependency injection, interface usage, and ensure dependencies point inward 
+      according to clean architecture principles.
+
+  - name: docker-setup
+    description: Help with Docker and local development setup
+    prompt: |
+      Help me with Docker Compose setup for local development. This includes:
+      - Starting CockroachDB with docker-compose up -d
+      - Running migrations with make migrate-up
+      - Ensuring environment variables are properly configured
+      - Troubleshooting common connection issues
+      - Verifying the CockroachDB admin UI is accessible at http://localhost:8080
+
+  - name: optimize-queries
+    description: Optimize database queries for CockroachDB
+    prompt: |
+      Review and optimize the database queries in the repository layer for CockroachDB. 
+      Consider distributed SQL best practices, proper indexing strategies, and CockroachDB-specific optimizations.
+      Look for potential performance bottlenecks and suggest improvements such as:
+      - Using appropriate index hints
+      - Optimizing JOIN operations for distributed queries
+      - Leveraging CockroachDB's SQL capabilities
+      - Proper transaction handling for consistency
+
+docs:
+  - title: Go gRPC Best Practices
+    startUrl: https://grpc.io/docs/languages/go/
+    rootUrl: https://grpc.io/
+
+  - title: CockroachDB Go Documentation
+    startUrl: https://www.cockroachlabs.com/docs/stable/build-a-go-app-with-cockroachdb.html
+    rootUrl: https://www.cockroachlabs.com/docs/
+
+  - title: Protocol Buffers Go Tutorial
+    startUrl: https://protobuf.dev/getting-started/gotutorial/
+    rootUrl: https://protobuf.dev/
+
+  - title: Clean Architecture in Go
+    startUrl: https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
+    rootUrl: https://blog.cleancoder.com/ 
