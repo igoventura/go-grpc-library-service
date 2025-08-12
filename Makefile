@@ -9,6 +9,13 @@ BUILD_DIR=bin
 PROTO_DIR=proto
 PROTO_OUT=./pkg/pb
 
+ifeq (,$(wildcard .env))
+		$(warning .env file not found. Environment variables might be missing.)
+else
+		include .env
+		export
+endif
+
 # Generate/Update Protocol Buffer Files
 generate:
 	@echo "Generating protocol buffer files..."
@@ -67,6 +74,11 @@ setup: install-tools install-deps
 dev: generate format test build
 	@echo "Development workflow complete!"
 
+# Database Migrations
+migrate-up:
+	@echo "Running migrations..."
+	migrate -path ./migrations -database ${DATABASE_URL} up
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -81,4 +93,5 @@ help:
 	@echo "  format        - Format code"
 	@echo "  clean         - Clean build artifacts"
 	@echo "  dev           - Full development workflow (generate + format + test + build)"
+	@echo "  migrate-up    - Run database migrations"
 	@echo "  help          - Show this help message"
